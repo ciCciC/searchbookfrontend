@@ -1,0 +1,25 @@
+<section class="example-container mat-elevation-z8">
+  <div class="example-loading-shade"
+       *ngIf="isLoadingResults || isRateLimitReached">
+    <mat-spinner *ngIf="isLoadingResults"></mat-spinner>
+    <div class="example-rate-limit-reached" *ngIf="isRateLimitReached">
+      API rate limit has been reached.
+    </div>
+  </div>
+
+  <section class="search-section">
+    <mat-form-field class="filter-bar">
+      <mat-label>Filter</mat-label>
+      <mat-select [formControl]="filter" multiple>
+        <mat-option *ngFor="let property of filterProp" [value]="property">{{property}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="search-bar">
+      <mat-label>Search</mat-label>
+      <input matInput
+             [formControl]="search" autocomplete="off">
+    </mat-form-field>
+  </section>
+
+</section>
