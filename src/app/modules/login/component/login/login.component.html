@@ -1,0 +1,24 @@
+<div class="center">
+  <mat-card class="no-shadowing">
+    <mat-card-title>Login search books app</mat-card-title>
+    <mat-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <p>
+          <mat-form-field class="dec-full-width" appearance="outline">
+            <mat-label>Username</mat-label>
+            <input type="text" matInput placeholder="Username" formControlName="username">
+          </mat-form-field>
+        </p>
+        <p>
+          <mat-form-field class="dec-full-width" appearance="outline">
+            <mat-label>Password</mat-label>
+            <input type="password" matInput placeholder="Password" formControlName="password">
+          </mat-form-field>
+        </p>
+        <div class="button">
+          <button mat-raised-button [disabled]="!loginForm.valid" color="primary">Login</button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,16 @@
+<mat-toolbar color="primary">
+  <mat-toolbar-row>
+    <div>
+      <div>
+        <span (click)="routeHome()">{{title}}</span>
+      </div>
+      <div>
+        <span>Welcome {{(currentUser | async)?.name}}</span>
+      </div>
+    </div>
+    <span class="example-fill-remaining-space"></span>
+    <span class="align-center"></span>
+    <span class="example-spacer"></span>
+    <button mat-stroked-button color="accent" (click)="logout()">Logout</button>
+  </mat-toolbar-row>
+</mat-toolbar>
