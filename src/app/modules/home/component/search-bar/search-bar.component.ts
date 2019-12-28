@@ -3,7 +3,7 @@ import {FormControl} from '@angular/forms';
 import {AuthService} from '../../../../core/service/auth/auth.service';
 import {AmazonService} from '../../../../core/service/amazon/amazon.service';
 import {Observable, of} from 'rxjs';
-import {Amazonbook} from '../../../../shared/model/amazonbook';
+import {AmazonBook} from '../../../../shared/model/amazonBook';
 import {Page} from '../../../../shared/model/page';
 
 @Component({
@@ -12,9 +12,6 @@ import {Page} from '../../../../shared/model/page';
   styleUrls: ['./search-bar.component.css']
 })
 export class SearchBarComponent implements OnInit, AfterViewInit {
-
-  @Output()
-  dataSource = new EventEmitter<Observable<Amazonbook[]>>();
 
   resultsLength = 0;
   pageIndex = 0;
@@ -42,7 +39,7 @@ export class SearchBarComponent implements OnInit, AfterViewInit {
         this.amazonBookService.searchByTitle(0, newValue.trim().toLowerCase())
           .subscribe(value => {
             this.resultsLength = value.totalSizeIndex;
-            this.dataSource.emit(of(value.dataDtos));
+            this.amazonBookService.setLiveData(value.dataDtos);
           });
       } else {
         this.isFilterEnabled = false;
@@ -65,11 +62,11 @@ export class SearchBarComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private processData(data: Page<Amazonbook>) {
+  private processData(data: Page<AmazonBook>) {
     this.isLoadingResults = false;
     this.isRateLimitReached = false;
     this.resultsLength = data.totalSizeIndex;
-    this.dataSource.emit(of(data.dataDtos));
+    this.amazonBookService.setLiveData(data.dataDtos);
   }
 
   private onError(error) {

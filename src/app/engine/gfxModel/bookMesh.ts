@@ -62,17 +62,20 @@ export class BookMesh extends Mesh {
    * For mapping the list as a rectangle shape
    * @param meshOfBooks
    * @param bookMeshList
+   * @param preferredRowLength - Amount of rows
    */
-  static populateAsRectangleShape(meshOfBooks: Object3D, bookMeshList: BookMesh []) {
-    // Amount of rows
-    const preferredRowLength = 3;
+  static populateAsRectangleShape(meshOfBooks: Object3D, bookMeshList: BookMesh [], preferredRowLength: number) {
+
+    if (bookMeshList.length < 1) {
+      return;
+    }
 
     const arrTwoD = [];
     while (bookMeshList.length) {
       arrTwoD.push(bookMeshList.splice(0, preferredRowLength));
     }
 
-    const offset = ( arrTwoD.length - 1 );
+    const offset = 9;
     const areaSize = preferredRowLength / 2;
 
     for (let i = 0; i < arrTwoD.length; i++) {
@@ -82,6 +85,40 @@ export class BookMesh extends Mesh {
         const iY = i * 2;
 
         const vector3 = new THREE.Vector3();
+        vector3.set( (offset - jX + (areaSize + 2)), offset - iY, 0 );
+        book.position.set(vector3.x, vector3.y, vector3.z);
+        book.currentPos.copy(vector3);
+
+        meshOfBooks.add(book);
+      }
+    }
+  }
+
+  static populateAsRectangleShapeTest(meshOfBooks: Object3D, bookMeshList: BookMesh []) {
+
+    if (bookMeshList.length < 1) {
+      return;
+    }
+
+    // Amount of rows
+    const preferredRowLength = 3;
+
+    const arrTwoD = [];
+    while (bookMeshList.length) {
+      arrTwoD.push(bookMeshList.splice(0, preferredRowLength));
+    }
+
+    const offset = 9;
+    console.log('Length: ' + arrTwoD.length);
+    const areaSize = preferredRowLength / 2;
+    const vector3 = new THREE.Vector3();
+
+    for (let i = 0; i < arrTwoD.length; i++) {
+      for (let j = 0; j < arrTwoD[i].length; j++) {
+        const book = arrTwoD[i][j] as AmazonBookMesh;
+        const jX = j * 2;
+        const iY = i * 2;
+
         vector3.set( (offset - jX + (areaSize + 2)), offset - iY, 0 );
         book.position.set(vector3.x, vector3.y, vector3.z);
         book.currentPos.copy(vector3);

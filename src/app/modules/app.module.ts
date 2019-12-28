@@ -14,7 +14,6 @@ import {PageNotFoundComponent} from './errorhandler/component/page-not-found/pag
 import { SearchResultComponent } from './home/component/search-result/search-result.component';
 import { SimpelRendererComponent } from './gfx/component/simpel-renderer/simpel-renderer.component';
 import { RenderCubesComponent } from './gfx/component/render-cubes/render-cubes.component';
-import { RenderBooksComponent } from './gfx/component/render-books/render-books.component';
 import { RenderAmazonBooksComponent } from './gfx/component/render-amazon-books/render-amazon-books.component';
 import { SearchBarComponent } from './home/component/search-bar/search-bar.component';
 
@@ -28,7 +27,6 @@ import { SearchBarComponent } from './home/component/search-bar/search-bar.compo
     SearchResultComponent,
     SimpelRendererComponent,
     RenderCubesComponent,
-    RenderBooksComponent,
     RenderAmazonBooksComponent,
     SearchBarComponent,
 

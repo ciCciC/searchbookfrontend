@@ -1,7 +1,13 @@
 import {Component, OnInit} from '@angular/core';
 import * as THREE from 'three';
-import {Intersection, Raycaster, Vector2} from 'three';
+import {AmbientLight, MeshStandardMaterial, Object3D, PerspectiveCamera, Raycaster, Scene, Vector3, WebGLRenderer} from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import {AmazonBook} from '../../../../shared/model/amazonBook';
+import {AmazonService} from '../../../../core/service/amazon/amazon.service';
+import {AmazonBookMesh} from '../../../../engine/gfxModel/amazonBookMesh';
+import {RenderUtil} from '../../../../engine/render/renderUtil';
+import {AmazonBookFactory} from '../../../../engine/gfxModel/amazonBookFactory';
+import {BookMesh} from '../../../../engine/gfxModel/bookMesh';
 
 @Component({
   selector: 'app-simpel-renderer',
@@ -10,144 +16,178 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 })
 export class SimpelRendererComponent implements OnInit {
 
-  scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera;
-  renderer: THREE.WebGLRenderer;
-  cube: THREE.InstancedMesh;
-  cubeList: THREE.Mesh[] = [];
-  dummy = new THREE.Object3D();
-  amount = Number( window.location.search.substr( 1 ) ) || 4;
-  count = Math.pow( this.amount, 3 );
-
-  rotationTheta = 0.1;
-  rotationMatrix = new THREE.Matrix4().makeRotationY( this.rotationTheta );
-  instanceMatrix = new THREE.Matrix4();
-  matrix = new THREE.Matrix4();
+  private rendererRight: WebGLRenderer;
+  private rendererLeft: WebGLRenderer;
+  private container: HTMLElement;
+  private sceneRight: Scene;
+  private sceneLeft: Scene;
+  private camera: PerspectiveCamera;
+  private meshOfBooks = new Object3D();
+  private bookMeshList: AmazonBookMesh [] = [];
+  private bookList: AmazonBook [] = [];
   private controls: OrbitControls;
+  private lightWhite: AmbientLight;
+  private mouseVector: Vector3;
+  private rayCaster: Raycaster;
+  private mouseX: number;
+  private mouseY: number;
+  private highlightBox: AmazonBookMesh;
 
-  mouseVector: Vector2;
-  private raycaster: Raycaster;
-
-  constructor() {
+  constructor(private readonly amazonBookService: AmazonService) {
   }
 
   init() {
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000);
-    this.camera.position.set( this.amount * 0.9, this.amount * 0.9, this.amount * 0.9 );
-    this.camera.lookAt(0, 0, 0);
-
+    this.initCanvas();
+    this.initScene();
+    this.initCam();
     this.initRenderer();
-    this.initCubeOfCubes();
-    this.initRaycaster();
+    this.initBookMeshs();
+    this.initHighlightBox();
     this.initControl();
+    this.initLighting();
+    this.initRaycaster();
 
-    this.camera.position.z = 5;
-  }
-
-  onMouseMove(event) {
-    event.preventDefault();
-    this.mouseVector.setX(( event.clientX / window.innerWidth ) * 2 - 1);
-    this.mouseVector.setY(-( event.clientY / window.innerHeight ) * 2 + 1);
+    this.camera.position.z = 15;
   }
 
   initControl() {
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.minDistance = 1;
+    this.controls = new OrbitControls(this.camera, this.rendererRight.domElement);
+    this.controls.minDistance = 0.1;
     this.controls.maxDistance = 1000;
+    this.controls.dampingFactor = 0.1;
   }
 
-  initRaycaster() {
-    this.raycaster = new Raycaster();
-    this.mouseVector = new Vector2();
+  initCanvas() {
+    this.container = document.getElementById('container1');
+  }
+
+  initScene() {
+    this.sceneRight = new Scene();
+    this.sceneLeft = new Scene();
   }
 
   initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({antialias: true});
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(this.renderer.domElement);
+    this.rendererLeft = RenderUtil.getWebGLRenderer(window.innerWidth / 2, window.innerHeight);
+    this.rendererLeft.autoClear = false;
+    this.container.append(this.rendererLeft.domElement);
+
+    this.rendererRight = RenderUtil.getWebGLRenderer(window.innerWidth / 2, window.innerHeight);
+    this.rendererRight.autoClear = false;
+    this.container.append(this.rendererRight.domElement);
   }
 
-  initCubeOfCubes() {
-    for (let i = 0; i < this.amount; i++) {
-      // this.cube = this.initSphereInstance('assets/texture/sphere.png');
-      this.cube = this.initIcosahedronGeometry('assets/texture/sphere.png');
-      this.cubeList.push(this.cube);
-      this.scene.add(this.cube);
+  initCam() {
+    this.camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000);
+  }
+
+  initHighlightBox() {
+    const geometry = new THREE.BoxGeometry(
+      10,
+      10,
+      1.1);
+    const material = AmazonBookFactory.getImgMaterial('assets/texture/sphere.png');
+    this.highlightBox = new AmazonBookMesh(geometry, material);
+    this.highlightBox.position.set(0, 0, 0);
+    this.sceneLeft.add(this.highlightBox);
+  }
+
+  initBookMeshs() {
+    this.bookList.forEach(value => {
+      const bookMesh = AmazonBookFactory.getInstance(
+        1.5,
+        1.5,
+        1.1, // <- 0.1
+        value.imgUrl);
+      bookMesh.book = value;
+      bookMesh.touched = false;
+      this.bookMeshList.push(bookMesh);
+    });
+    this.populateShape();
+    this.sceneRight.add(this.meshOfBooks);
+  }
+
+  populateShape() {
+    BookMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList);
+  }
+
+  initLighting() {
+    this.lightWhite = new AmbientLight(0xffffff, 2);
+    this.lightWhite.position.set(500, 0, -100);
+    this.sceneRight.add(this.lightWhite);
+
+    const leftLight = new AmbientLight(0xffffff, 2);
+    leftLight.position.set(0, 0, -100);
+    this.sceneLeft.add(leftLight);
+  }
+
+  initRaycaster() {
+    this.rayCaster = new Raycaster();
+    this.mouseVector = new Vector3();
+    this.rayCaster.params.Points.threshold = 0.1;
+  }
+
+  renderPick() {
+    this.rayCaster.setFromCamera(this.mouseVector, this.camera);
+
+    this.meshOfBooks.children.forEach(value => {
+      const tmpMesh = (value as AmazonBookMesh);
+      tmpMesh.touched = false;
+      // this.replaceWithMesh(tmpMesh);
+    });
+
+    const intersectObjects = this.rayCaster.intersectObjects(this.meshOfBooks.children);
+    if (intersectObjects.length > 0) {
+      intersectObjects.forEach(value => {
+        const touchedCube = (value.object as AmazonBookMesh);
+        touchedCube.touched = true;
+        // this.replaceWithMesh(touchedCube);
+      });
     }
-
-    this.renderCubeOfCubes();
-  }
-
-  initIcosahedronGeometry(file: string): THREE.InstancedMesh {
-    const geometry = new THREE.IcosahedronGeometry(0.5, 2);
-    const texture = new THREE.TextureLoader().load(file);
-    const material = new THREE.MeshBasicMaterial( {map: texture} );
-    return new THREE.InstancedMesh( geometry, material, this.count );
-  }
-
-  initSphereInstance(file: string): THREE.InstancedMesh {
-    const geometry = new THREE.SphereBufferGeometry( 0.5, 0.5, 0.5 );
-    const texture = new THREE.TextureLoader().load(file);
-    const material = new THREE.MeshBasicMaterial( {map: texture} );
-    return new THREE.InstancedMesh( geometry, material, this.count );
   }
 
   animate()  {
-      requestAnimationFrame(() => this.animate());
-      this.render();
-      this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+    requestAnimationFrame(() => this.animate());
+    this.render();
+    this.controls.update();
+    this.camera.updateProjectionMatrix();
+    this.rendererRight.render(this.sceneRight, this.camera);
+    this.rendererLeft.render(this.sceneLeft, this.camera);
   }
 
   render() {
     this.renderPick();
-    // this.renderCubeOfCubes();
+    this.highlightBox.rotation.z += Math.PI / 500;
+    this.rendererRight.setRenderTarget(null);
+    this.rendererLeft.setRenderTarget(null);
   }
 
-  renderPick() {
-    this.raycaster.setFromCamera(this.mouseVector, this.camera);
-
-    const intersectObject = this.raycaster.intersectObject(this.cube);
-    if (intersectObject.length > 0) {
-      this.cube.getMatrixAt((intersectObject[0] as Intersection).instanceId, this.instanceMatrix);
-      this.matrix.multiplyMatrices(this.instanceMatrix, this.rotationMatrix);
-      this.cube.setMatrixAt(intersectObject[0].instanceId, this.matrix );
-      this.cube.instanceMatrix.needsUpdate = true;
-    }
-  }
-
-  renderCubeOfCubes() {
-    if ( this.cube ) {
-      const time = Date.now() * 0.001;
-      this.cube.rotation.x = Math.sin( time / 4 );
-      this.cube.rotation.y = Math.sin( time / 2 );
-      let i = 0;
-      const offset = ( this.amount - 1 ) / 2;
-      for ( let x = 0; x < this.amount; x ++ ) {
-        for ( let y = 0; y < this.amount; y ++ ) {
-          for ( let z = 0; z < this.amount; z ++ ) {
-            this.dummy.position.set( offset - x, offset - y, offset - z );
-            this.dummy.rotation.y = ( Math.sin( x / 4 + time ) + Math.sin( y / 4 + time ) + Math.sin( z / 4 + time ) );
-            this.dummy.rotation.z = this.dummy.rotation.y * 2;
-            this.dummy.updateMatrix();
-            this.cube.setMatrixAt( i ++, this.dummy.matrix );
-          }
-        }
-      }
-      this.cube.instanceMatrix.needsUpdate = true;
-    }
+  getBooks() {
+    this.amazonBookService.getAllMock().subscribe(value => {
+      this.meshOfBooks.children = [];
+      // this.meshOfBooks.add(this.highlightBox);
+      this.bookList = value.dataDtos;
+      this.initBookMeshs();
+      this.animate();
+    });
   }
 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.rendererLeft.setPixelRatio(window.devicePixelRatio);
+    this.rendererLeft.setSize(window.innerWidth / 2, window.innerHeight);
+    this.rendererRight.setPixelRatio(window.devicePixelRatio);
+    this.rendererRight.setSize(window.innerWidth / 2, window.innerHeight);
+  }
+
+  onMouseClick(event) {
+    event.preventDefault();
+    this.mouseVector.setX(( event.clientX / window.innerWidth ) * 2 - 1);
+    this.mouseVector.setY(-( event.clientY / window.innerHeight ) * 2 + 1);
   }
 
   initEventListener() {
@@ -155,12 +195,13 @@ export class SimpelRendererComponent implements OnInit {
   }
 
   initMouseListener() {
-    document.addEventListener( 'click', (event) => this.onMouseMove(event), false );
+    document.addEventListener( 'click', (event) => this.onMouseClick(event), false );
   }
 
   ngOnInit() {
     this.init();
-    this.animate();
+    this.getBooks();
+    // this.animate();
     this.initEventListener();
     this.initMouseListener();
   }

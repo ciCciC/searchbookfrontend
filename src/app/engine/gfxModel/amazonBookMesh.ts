@@ -1,10 +1,10 @@
 import {Geometry, Mesh, Vector3} from 'three';
-import {Amazonbook} from '../../shared/model/amazonbook';
+import {AmazonBook} from '../../shared/model/amazonBook';
 
 export class AmazonBookMesh extends Mesh {
 
   idCube: string;
-  book: Amazonbook;
+  book: AmazonBook;
   index: number;
   touched: boolean;
   geometryIntern: Geometry = new Geometry();

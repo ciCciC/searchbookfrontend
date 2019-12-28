@@ -1,14 +1,13 @@
-import {AfterViewInit, Component, Input, OnInit} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import * as THREE from 'three';
 import {AmbientLight, MeshStandardMaterial, Object3D, PerspectiveCamera, Raycaster, Scene, Vector3, WebGLRenderer} from 'three';
 import {RenderUtil} from '../../../../engine/render/renderUtil';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {BookMesh} from '../../../../engine/gfxModel/bookMesh';
-import {Amazonbook} from '../../../../shared/model/amazonbook';
+import {AmazonBook} from '../../../../shared/model/amazonBook';
 import {AmazonService} from '../../../../core/service/amazon/amazon.service';
 import {AmazonBookMesh} from '../../../../engine/gfxModel/amazonBookMesh';
 import {AmazonBookFactory} from '../../../../engine/gfxModel/amazonBookFactory';
-import {Observable} from 'rxjs';
 
 @Component({
   selector: 'app-render-amazon-books',
@@ -23,11 +22,11 @@ export class RenderAmazonBooksComponent implements OnInit {
   private camera: PerspectiveCamera;
   private meshOfBooks = new Object3D();
   private bookMeshList: AmazonBookMesh [] = [];
-  private bookList: Amazonbook [] = [];
+  private bookList: AmazonBook [] = [];
   private controls: OrbitControls;
   private lightWhite: AmbientLight;
   private mouseVector: Vector3;
-  private raycaster: Raycaster;
+  private rayCaster: Raycaster;
   private mouseX: number;
   private mouseY: number;
   private highlightBox: AmazonBookMesh;
@@ -111,17 +110,17 @@ export class RenderAmazonBooksComponent implements OnInit {
   }
 
   populateShape() {
-    BookMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList);
+    BookMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList, 3);
   }
 
   initRaycaster() {
-    this.raycaster = new Raycaster();
+    this.rayCaster = new Raycaster();
     this.mouseVector = new Vector3();
-    this.raycaster.params.Points.threshold = 0.1;
+    this.rayCaster.params.Points.threshold = 0.1;
   }
 
   renderPick() {
-    this.raycaster.setFromCamera(this.mouseVector, this.camera);
+    this.rayCaster.setFromCamera(this.mouseVector, this.camera);
 
     this.meshOfBooks.children.forEach(value => {
       const tmpMesh = (value as AmazonBookMesh);
@@ -129,7 +128,7 @@ export class RenderAmazonBooksComponent implements OnInit {
       this.replaceWithMesh(tmpMesh);
     });
 
-    const intersectObjects = this.raycaster.intersectObjects(this.meshOfBooks.children);
+    const intersectObjects = this.rayCaster.intersectObjects(this.meshOfBooks.children);
     if (intersectObjects.length > 0) {
       intersectObjects.forEach(value => {
         const touchedCube = (value.object as AmazonBookMesh);
@@ -169,8 +168,8 @@ export class RenderAmazonBooksComponent implements OnInit {
     this.renderer.setRenderTarget(null);
   }
 
-  getBooks(dataSource: Observable<Amazonbook[]>) {
-    dataSource.subscribe(value => {
+  getBooks() {
+    this.amazonBookService.getLiveData().subscribe(value => {
       this.meshOfBooks.children = [];
       this.meshOfBooks.add(this.highlightBox);
       this.bookList = value;
@@ -203,6 +202,7 @@ export class RenderAmazonBooksComponent implements OnInit {
 
   ngOnInit() {
     this.init();
+    this.getBooks();
     this.initWindowResize();
     this.initMouseClick();
   }

@@ -1,5 +1,5 @@
 import {Book} from './book';
 
-export interface Amazonbook extends Book {
+export interface AmazonBook extends Book {
   imgUrl: string;
 }

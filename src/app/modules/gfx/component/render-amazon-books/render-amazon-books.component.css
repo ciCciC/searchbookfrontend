@@ -3,8 +3,8 @@
   color: red;
   width: 400px;
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 1em;
+  left: 1em;
 }
 
 .container{
