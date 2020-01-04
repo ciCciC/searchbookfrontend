@@ -1,13 +1,25 @@
 import {Component, OnInit} from '@angular/core';
 import * as THREE from 'three';
-import {AmbientLight, MeshStandardMaterial, Object3D, PerspectiveCamera, Raycaster, Scene, Vector3, WebGLRenderer} from 'three';
-import {RenderUtil} from '../../../../engine/render/renderUtil';
+import {
+  AmbientLight, Geometry,
+  Material,
+  Mesh,
+  MeshStandardMaterial,
+  Object3D,
+  PerspectiveCamera,
+  Raycaster,
+  Scene,
+  Vector3,
+  WebGLRenderer
+} from 'three';
+import {RenderManager} from '../../../../engine/render/renderManager';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {BookMesh} from '../../../../engine/gfxModel/bookMesh';
+import {BaseMesh} from '../../../../engine/gfxModel/baseMesh';
 import {AmazonBook} from '../../../../shared/model/amazonBook';
 import {AmazonService} from '../../../../core/service/amazon/amazon.service';
 import {AmazonBookMesh} from '../../../../engine/gfxModel/amazonBookMesh';
 import {AmazonBookFactory} from '../../../../engine/gfxModel/amazonBookFactory';
+import {ArrowMesh} from '../../../../engine/gfxModel/arrowMesh';
 
 @Component({
   selector: 'app-render-amazon-books',
@@ -26,10 +38,15 @@ export class RenderAmazonBooksComponent implements OnInit {
   private controls: OrbitControls;
   private lightWhite: AmbientLight;
   private mouseVector: Vector3;
-  private rayCaster: Raycaster;
+  private mouseMove: Vector3;
+  private rayCasterClick: Raycaster;
+  private rayCasterMove: Raycaster;
   private mouseX: number;
   private mouseY: number;
   private highlightBox: AmazonBookMesh;
+  private nextMesh: ArrowMesh;
+  private previousMesh: ArrowMesh;
+  private groupActionMesh: THREE.Group;
 
   constructor(private readonly amazonBookService: AmazonService) {
   }
@@ -40,6 +57,7 @@ export class RenderAmazonBooksComponent implements OnInit {
     this.initCam();
     this.initRenderer();
     this.initBookMeshs();
+    this.initNextAndPreviousMesh();
     this.initHighlightBox();
     this.initControl();
     this.initLighting();
@@ -64,7 +82,7 @@ export class RenderAmazonBooksComponent implements OnInit {
   }
 
   initRenderer() {
-    this.renderer = RenderUtil.getWebGLRenderer(window.innerWidth, window.innerHeight);
+    this.renderer = RenderManager.getWebGLRenderer(window.innerWidth, window.innerHeight);
     this.renderer.autoClear = false;
     this.container.append(this.renderer.domElement);
   }
@@ -84,7 +102,7 @@ export class RenderAmazonBooksComponent implements OnInit {
       1.1);
     const material = AmazonBookFactory.getImgMaterial('assets/texture/sphere.png');
     this.highlightBox = new AmazonBookMesh(geometry, material);
-    this.highlightBox.position.set(0, 0, 0);
+    this.highlightBox.position.set(0, -1, 0);
     this.meshOfBooks.add(this.highlightBox);
   }
 
@@ -103,6 +121,33 @@ export class RenderAmazonBooksComponent implements OnInit {
     this.scene.add(this.meshOfBooks);
   }
 
+  initNextAndPreviousMesh() {
+    const heightY = 7;
+    const widthArrow = 3;
+    const geometry = new THREE.BoxBufferGeometry( widthArrow, 2, 0 );
+    const img = new THREE.TextureLoader().load('assets/texture/arrow.webp');
+    const material = new THREE.MeshBasicMaterial( { map : img } );
+
+    this.nextMesh = new ArrowMesh(geometry, material);
+    this.nextMesh.touched = false;
+    this.nextMesh.direction = 'next';
+    this.nextMesh.position.set(2, heightY, 2);
+    this.nextMesh.rotateX(0.4);
+
+    this.previousMesh = new ArrowMesh(geometry, material);
+    this.previousMesh.touched = false;
+    this.previousMesh.direction = 'previous';
+    this.previousMesh.position.set(-2, heightY, 2);
+    this.previousMesh.rotateX(3.5);
+
+    this.groupActionMesh = new THREE.Group();
+    this.groupActionMesh.add(this.nextMesh);
+    this.groupActionMesh.add(this.previousMesh);
+    this.groupActionMesh.position.set(0, 0, 0);
+
+    this.scene.add(this.groupActionMesh);
+  }
+
   initLighting() {
     this.lightWhite = new AmbientLight(0xffffff, 2);
     this.lightWhite.position.set(500, 0, -100);
@@ -110,17 +155,21 @@ export class RenderAmazonBooksComponent implements OnInit {
   }
 
   populateShape() {
-    BookMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList, 3);
+    BaseMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList, 3);
   }
 
   initRaycaster() {
-    this.rayCaster = new Raycaster();
+    this.rayCasterClick = new Raycaster();
+    this.rayCasterMove = new Raycaster();
     this.mouseVector = new Vector3();
-    this.rayCaster.params.Points.threshold = 0.1;
+    this.mouseMove = new Vector3();
+    this.rayCasterClick.params.Points.threshold = 0.1;
+    this.rayCasterMove.params.Points.threshold = 0.1;
   }
 
   renderPick() {
-    this.rayCaster.setFromCamera(this.mouseVector, this.camera);
+    this.rayCasterClick.setFromCamera(this.mouseVector, this.camera);
+    this.rayCasterMove.setFromCamera(this.mouseMove, this.camera);
 
     this.meshOfBooks.children.forEach(value => {
       const tmpMesh = (value as AmazonBookMesh);
@@ -128,7 +177,13 @@ export class RenderAmazonBooksComponent implements OnInit {
       this.replaceWithMesh(tmpMesh);
     });
 
-    const intersectObjects = this.rayCaster.intersectObjects(this.meshOfBooks.children);
+    this.groupActionMesh.children.forEach(value => {
+      const tmpMesh = (value as ArrowMesh);
+      tmpMesh.touched = false;
+      this.replaceWithColor(tmpMesh);
+    });
+
+    const intersectObjects = this.rayCasterClick.intersectObjects(this.meshOfBooks.children);
     if (intersectObjects.length > 0) {
       intersectObjects.forEach(value => {
         const touchedCube = (value.object as AmazonBookMesh);
@@ -136,6 +191,40 @@ export class RenderAmazonBooksComponent implements OnInit {
         this.replaceWithMesh(touchedCube);
       });
     }
+
+    const intersectArrows = this.rayCasterMove.intersectObjects(this.groupActionMesh.children);
+    if (intersectArrows.length > 0) {
+      intersectArrows.forEach(value => {
+        const touchedCube = (value.object as ArrowMesh);
+        touchedCube.touched = true;
+        this.replaceWithColor(touchedCube);
+      });
+    }
+  }
+
+  replaceWithColor(mesh: ArrowMesh) {
+    if (mesh.touched) {
+      const currentIndex = this.amazonBookService.getPageIndexValue();
+
+      if (mesh.direction === 'next') {
+        this.amazonBookService.nextPage();
+      } else if (mesh.direction === 'previous') {
+        this.amazonBookService.previousPage();
+      }
+
+      const searchField = this.amazonBookService.getSearchTitleValue();
+
+      if (searchField.length > 0 || searchField) {
+        this.amazonBookService.searchByTitle().subscribe(value => this.transformFetchedData(value.dataDtos));
+      } else {
+        this.amazonBookService.getAll()
+          .subscribe(value => value);
+        this.getBooks();
+      }
+    }
+
+    this.mouseMove.set(0, 0, 0);
+    mesh.touched = false;
   }
 
   replaceWithMesh(mesh: AmazonBookMesh) {
@@ -149,7 +238,7 @@ export class RenderAmazonBooksComponent implements OnInit {
       this.highlightBox.translateZ(calCos < 1 ? calCos + 1 : calCos);
     } else {
       this.highlightBox.visible = false;
-      this.highlightBox.position.set(0, 0, 1);
+      this.highlightBox.position.set(0, -1, 1);
       this.highlightBox.translateZ(0);
       (mesh.material as MeshStandardMaterial).color.setHex(0xffffff);
     }
@@ -170,12 +259,21 @@ export class RenderAmazonBooksComponent implements OnInit {
 
   getBooks() {
     this.amazonBookService.getLiveData().subscribe(value => {
-      this.meshOfBooks.children = [];
-      this.meshOfBooks.add(this.highlightBox);
-      this.bookList = value;
-      this.initBookMeshs();
-      this.animate();
+      // this.meshOfBooks.children = [];
+      // this.meshOfBooks.add(this.highlightBox);
+      // this.bookList = value;
+      // this.initBookMeshs();
+      // this.animate();
+      this.transformFetchedData(value.dataDtos);
     });
+  }
+
+  transformFetchedData(value: AmazonBook[]) {
+    this.meshOfBooks.children = [];
+    this.meshOfBooks.add(this.highlightBox);
+    this.bookList = value;
+    this.initBookMeshs();
+    this.animate();
   }
 
   onMouseClick(event) {
@@ -187,8 +285,14 @@ export class RenderAmazonBooksComponent implements OnInit {
     this.mouseY = event.clientY;
   }
 
+  onMouseMove(event) {
+    event.preventDefault();
+    this.mouseMove.setX((event.clientX / window.innerWidth) * 2 - 1);
+    this.mouseMove.setY(-(event.clientY / window.innerHeight) * 2 + 1);
+  }
+
   onWindowResize() {
-    RenderUtil.onWindowResize(this.camera, this.renderer, this.container);
+    RenderManager.onWindowResize(this.camera, this.renderer, this.container);
   }
 
   initWindowResize() {
@@ -200,10 +304,16 @@ export class RenderAmazonBooksComponent implements OnInit {
       (event) => this.onMouseClick(event), false);
   }
 
+  initMouseMove() {
+    this.renderer.domElement.addEventListener('click',
+      (event) => this.onMouseMove(event), false);
+  }
+
   ngOnInit() {
     this.init();
     this.getBooks();
     this.initWindowResize();
     this.initMouseClick();
+    this.initMouseMove();
   }
 }

@@ -46,7 +46,8 @@ export class SearchResultComponent implements AfterViewInit {
     this.search.valueChanges.subscribe((newValue: string)  => {
       if (newValue) {
         this.isFilterEnabled = true;
-        this.amazonBookService.searchByTitle(0, newValue.trim().toLowerCase())
+        this.amazonBookService.setSearchTitle(newValue.trim().toLowerCase());
+        this.amazonBookService.searchByTitle()
           .subscribe(value => {
             this.resultsLength = value.totalSizeIndex;
             this.dataSource.data = value.dataDtos;
@@ -67,9 +68,12 @@ export class SearchResultComponent implements AfterViewInit {
         switchMap(() => {
           this.isLoadingResults = true;
           if (this.isFilterEnabled) {
-            return this.amazonBookService.searchByTitle(this.pageEvent.pageIndex, this.search.value.trim().toLowerCase());
+            this.amazonBookService.setPageIndex(this.pageEvent.pageIndex);
+            this.amazonBookService.setSearchTitle(this.search.value.trim().toLowerCase());
+            return this.amazonBookService.searchByTitle();
           } else {
-            return this.amazonBookService.getAll(this.paginator.pageIndex);
+            this.amazonBookService.setPageIndex(this.paginator.pageIndex);
+            return this.amazonBookService.getAll();
           }
         }),
         map(data => {

@@ -14,7 +14,7 @@ import {Page} from '../../../../shared/model/page';
 export class SearchBarComponent implements OnInit, AfterViewInit {
 
   resultsLength = 0;
-  pageIndex = 0;
+  // pageIndex = 0;
   isLoadingResults = true;
   isRateLimitReached = false;
   pageSize = 30;
@@ -34,16 +34,18 @@ export class SearchBarComponent implements OnInit, AfterViewInit {
 
   private applyFilter() {
     this.search.valueChanges.subscribe((newValue: string)  => {
-      if (newValue) {
+      if (newValue || newValue.length > 0) {
         this.isFilterEnabled = true;
-        this.amazonBookService.searchByTitle(0, newValue.trim().toLowerCase())
+        this.amazonBookService.setSearchTitle(newValue.trim().toLowerCase());
+        this.amazonBookService.resetPageIndex();
+        this.amazonBookService.searchByTitle()
           .subscribe(value => {
             this.resultsLength = value.totalSizeIndex;
-            this.amazonBookService.setLiveData(value.dataDtos);
           });
       } else {
         this.isFilterEnabled = false;
         this.fetch();
+        this.isLoadingResults = false;
       }
     });
   }
@@ -52,21 +54,21 @@ export class SearchBarComponent implements OnInit, AfterViewInit {
     this.isLoadingResults = true;
 
     if (this.isFilterEnabled) {
-      this.amazonBookService.searchByTitle(this.pageIndex, this.search.value.trim().toLowerCase())
+      this.amazonBookService.searchByTitle()
         .subscribe(value => this.processData(value),
           error => this.onError(error));
     } else {
-      this.amazonBookService.getAll(this.pageIndex)
+      this.amazonBookService.getAll()
         .subscribe(value => this.processData(value),
-            error => this.onError(error));
+          error => this.onError(error));
     }
   }
 
   private processData(data: Page<AmazonBook>) {
-    this.isLoadingResults = false;
+    // this.isLoadingResults = false;
+    this.stopLoadingIcon();
     this.isRateLimitReached = false;
     this.resultsLength = data.totalSizeIndex;
-    this.amazonBookService.setLiveData(data.dataDtos);
   }
 
   private onError(error) {
@@ -75,14 +77,13 @@ export class SearchBarComponent implements OnInit, AfterViewInit {
     console.log('error: ' + error);
   }
 
-  nextPage() {
-    this.pageIndex++;
+  private startLoadingIcon() {
+    this.isLoadingResults = true;
   }
 
-  previousPage() {
-    this.pageIndex--;
+  private stopLoadingIcon() {
+    this.isLoadingResults = false;
   }
-
 
   ngAfterViewInit(): void {
     // this.fetch();

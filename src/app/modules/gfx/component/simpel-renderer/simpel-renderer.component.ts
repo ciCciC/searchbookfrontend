@@ -5,9 +5,9 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {AmazonBook} from '../../../../shared/model/amazonBook';
 import {AmazonService} from '../../../../core/service/amazon/amazon.service';
 import {AmazonBookMesh} from '../../../../engine/gfxModel/amazonBookMesh';
-import {RenderUtil} from '../../../../engine/render/renderUtil';
+import {RenderManager} from '../../../../engine/render/renderManager';
 import {AmazonBookFactory} from '../../../../engine/gfxModel/amazonBookFactory';
-import {BookMesh} from '../../../../engine/gfxModel/bookMesh';
+import {BaseMesh} from '../../../../engine/gfxModel/baseMesh';
 
 @Component({
   selector: 'app-simpel-renderer',
@@ -67,11 +67,11 @@ export class SimpelRendererComponent implements OnInit {
   }
 
   initRenderer() {
-    this.rendererLeft = RenderUtil.getWebGLRenderer(window.innerWidth / 2, window.innerHeight);
+    this.rendererLeft = RenderManager.getWebGLRenderer(window.innerWidth / 2, window.innerHeight);
     this.rendererLeft.autoClear = false;
     this.container.append(this.rendererLeft.domElement);
 
-    this.rendererRight = RenderUtil.getWebGLRenderer(window.innerWidth / 2, window.innerHeight);
+    this.rendererRight = RenderManager.getWebGLRenderer(window.innerWidth / 2, window.innerHeight);
     this.rendererRight.autoClear = false;
     this.container.append(this.rendererRight.domElement);
   }
@@ -111,7 +111,7 @@ export class SimpelRendererComponent implements OnInit {
   }
 
   populateShape() {
-    BookMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList);
+    BaseMesh.populateAsRectangleShape(this.meshOfBooks, this.bookMeshList, 3);
   }
 
   initLighting() {

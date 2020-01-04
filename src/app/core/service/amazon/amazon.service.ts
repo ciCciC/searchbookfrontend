@@ -1,44 +1,91 @@
 import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
-import {Observable, of, ReplaySubject} from 'rxjs';
+import {BehaviorSubject, Observable, of, ReplaySubject} from 'rxjs';
 import {Page} from '../../../shared/model/page';
 import {LinkBuilder} from '../../../shared/model/linkbuilder';
 import {environment} from '../../../../environments/environment';
 import {AmazonBook} from '../../../shared/model/amazonBook';
+import {map} from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AmazonService {
 
-  private liveData: ReplaySubject<AmazonBook[]>;
+  private liveData: ReplaySubject<Page<AmazonBook>>;
+  private pageIndex: BehaviorSubject<number>;
+  private searchTitle: BehaviorSubject<string>;
 
   constructor(private readonly httpClient: HttpClient) {
-    this.liveData = new ReplaySubject<AmazonBook[]>(1);
+    this.liveData = new ReplaySubject<Page<AmazonBook>>(1);
+    this.pageIndex = new BehaviorSubject<number>(0);
+    this.searchTitle = new BehaviorSubject<string>('');
   }
 
-  public getAll(pageIndex: number): Observable<Page<AmazonBook>> {
+  public getAll(): Observable<Page<AmazonBook>> {
     return this.httpClient.get<Page<AmazonBook>>(LinkBuilder.build(
       environment.api,
       LinkBuilder.AMAZONBOOKS,
-      '?page=' + pageIndex));
+      '?page=' + this.pageIndex.value))
+      .pipe(map(value => {
+        this.setLiveData(value);
+        return value;
+      }));
   }
 
-  public searchByTitle(pageIndex: number, title: string): Observable<Page<AmazonBook>> {
+  public setSearchTitle(q: string) {
+    this.searchTitle.next(q);
+  }
+
+  public getSearchTitleValue(): string {
+    return this.searchTitle.getValue();
+  }
+
+  public searchByTitle(): Observable<Page<AmazonBook>> {
     return this.httpClient.get<Page<AmazonBook>>(LinkBuilder.build(
       environment.api,
       LinkBuilder.AMAZONBOOKS,
       LinkBuilder.SEARCH,
       LinkBuilder.TITLE,
-      '?q=' + title + '&page=' + pageIndex));
+      '?q=' + this.searchTitle.value + '&page=' + this.pageIndex.value))
+      .pipe(map(value => {
+        this.setLiveData(value);
+        return value;
+      }));
   }
 
-  public setLiveData(amazonBooks: AmazonBook[]) {
+  public setLiveData(amazonBooks: Page<AmazonBook>) {
     this.liveData.next(amazonBooks);
   }
 
-  public getLiveData(): Observable<AmazonBook[]> {
+  public getLiveData(): Observable<Page<AmazonBook>> {
     return this.liveData.asObservable();
+  }
+
+  public getPageIndexValue(): number {
+    return this.pageIndex.getValue();
+  }
+
+  public getPageIndex(): Observable<number> {
+    return this.pageIndex.asObservable();
+  }
+
+  public nextPage() {
+    this.pageIndex.next(this.pageIndex.value + 1);
+  }
+
+  public previousPage() {
+    if (this.pageIndex.value > 0) {
+      this.pageIndex.next(this.pageIndex.value - 1);
+    }
+  }
+
+  public resetPageIndex() {
+    this.pageIndex.next(0);
+  }
+
+  public setPageIndex(value: number) {
+    this.pageIndex.next(value);
   }
 
   public getAllMock(): Observable<Page<AmazonBook>> {

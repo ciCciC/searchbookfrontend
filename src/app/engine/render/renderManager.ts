@@ -3,7 +3,7 @@ import {Mesh, WebGLRenderer} from 'three';
 import {PlaneGeometry} from 'three';
 import {PerspectiveCamera} from 'three';
 
-export class RenderUtil {
+export class RenderManager {
 
   static getWebGLRenderer(width: number, height: number, color?: number): WebGLRenderer {
     const renderer = new THREE.WebGLRenderer({antialias: true});
@@ -20,10 +20,10 @@ export class RenderUtil {
     camera.updateProjectionMatrix();
   }
 
-  static planeInstance(): Mesh {
-    const geometry = new PlaneGeometry(1000, 1000, 100, 100);
+  static planeInstance(width: number, height: number, widthSegments: number, heightSegments: number): Mesh {
+    // const geometry = new PlaneGeometry(1000, 1000, 100, 100);
+    const geometry = new PlaneGeometry(width, height, widthSegments, heightSegments);
     const material = new THREE.MeshNormalMaterial( {transparent: true, opacity: 1, wireframe: true} );
-    const toReturn = new Mesh( geometry, material );
-    return toReturn;
+    return new Mesh( geometry, material );
   }
 }

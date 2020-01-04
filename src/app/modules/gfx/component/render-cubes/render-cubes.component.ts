@@ -5,7 +5,7 @@ import {CubeMesh} from '../../../../engine/gfxModel/cubeMesh';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {IsbnBookService} from '../../../../core/service/isbn/isbn-book.service';
 import {Book} from '../../../../shared/model/book';
-import {RenderUtil} from '../../../../engine/render/renderUtil';
+import {RenderManager} from '../../../../engine/render/renderManager';
 
 
 @Component({
@@ -94,7 +94,7 @@ export class RenderCubesComponent implements OnInit {
   }
 
   initRenderer() {
-    this.renderer = RenderUtil.getWebGLRenderer(this.container.clientWidth, this.container.clientHeight);
+    this.renderer = RenderManager.getWebGLRenderer(this.container.clientWidth, this.container.clientHeight);
     this.container.append(this.renderer.domElement);
   }
 
@@ -223,7 +223,7 @@ export class RenderCubesComponent implements OnInit {
   }
 
   onWindowResize() {
-    RenderUtil.onWindowResize(this.camera, this.renderer, this.container);
+    RenderManager.onWindowResize(this.camera, this.renderer, this.container);
   }
 
   onMouseMove(event) {
