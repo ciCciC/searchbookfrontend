@@ -7,7 +7,6 @@ export class RenderManager {
 
   static getWebGLRenderer(width: number, height: number, color?: number): WebGLRenderer {
     const renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setClearColor(0x050505);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
     return renderer;

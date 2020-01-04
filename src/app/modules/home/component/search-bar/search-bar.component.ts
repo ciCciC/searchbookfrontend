@@ -1,8 +1,7 @@
-import {AfterViewInit, Component, EventEmitter, OnInit, Output} from '@angular/core';
+import {AfterViewInit, Component, OnInit} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {AuthService} from '../../../../core/service/auth/auth.service';
 import {AmazonService} from '../../../../core/service/amazon/amazon.service';
-import {Observable, of} from 'rxjs';
 import {AmazonBook} from '../../../../shared/model/amazonBook';
 import {Page} from '../../../../shared/model/page';
 
@@ -14,10 +13,8 @@ import {Page} from '../../../../shared/model/page';
 export class SearchBarComponent implements OnInit, AfterViewInit {
 
   resultsLength = 0;
-  // pageIndex = 0;
   isLoadingResults = true;
   isRateLimitReached = false;
-  pageSize = 30;
 
   search: FormControl;
   filter: FormControl;
@@ -45,27 +42,27 @@ export class SearchBarComponent implements OnInit, AfterViewInit {
       } else {
         this.isFilterEnabled = false;
         this.fetch();
-        this.isLoadingResults = false;
       }
     });
   }
 
   private fetch() {
-    this.isLoadingResults = true;
+    this.startLoadingIcon();
 
     if (this.isFilterEnabled) {
       this.amazonBookService.searchByTitle()
         .subscribe(value => this.processData(value),
-          error => this.onError(error));
+          error => this.onError(error),
+          () => this.stopLoadingIcon());
     } else {
       this.amazonBookService.getAll()
         .subscribe(value => this.processData(value),
-          error => this.onError(error));
+          error => this.onError(error),
+          () => this.stopLoadingIcon());
     }
   }
 
   private processData(data: Page<AmazonBook>) {
-    // this.isLoadingResults = false;
     this.stopLoadingIcon();
     this.isRateLimitReached = false;
     this.resultsLength = data.totalSizeIndex;

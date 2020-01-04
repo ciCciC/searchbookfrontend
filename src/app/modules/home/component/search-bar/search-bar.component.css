@@ -1,5 +1,5 @@
-:root {
-  --color-green: green;
+:host {
+  --color-green: #00dc00;
   --color-red: red;
 }
 
@@ -7,7 +7,7 @@ mat-label {
   color: var(--color-green);
 }
 
-mat-option {
+mat-icon{
   color: var(--color-red);
 }
 

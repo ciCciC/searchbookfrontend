@@ -8,7 +8,7 @@ import {
   Object3D,
   PerspectiveCamera,
   Raycaster,
-  Scene,
+  Scene, TextureLoader,
   Vector3,
   WebGLRenderer
 } from 'three';
@@ -79,6 +79,7 @@ export class RenderAmazonBooksComponent implements OnInit {
 
   initScene() {
     this.scene = new Scene();
+    this.scene.background = new THREE.TextureLoader().load('assets/texture/nebula.jpg');
   }
 
   initRenderer() {
@@ -126,7 +127,7 @@ export class RenderAmazonBooksComponent implements OnInit {
     const widthArrow = 3;
     const geometry = new THREE.BoxBufferGeometry( widthArrow, 2, 0 );
     const img = new THREE.TextureLoader().load('assets/texture/arrow.webp');
-    const material = new THREE.MeshBasicMaterial( { map : img } );
+    const material = new THREE.MeshBasicMaterial( { map : img, transparent: true } );
 
     this.nextMesh = new ArrowMesh(geometry, material);
     this.nextMesh.touched = false;
@@ -204,7 +205,6 @@ export class RenderAmazonBooksComponent implements OnInit {
 
   replaceWithColor(mesh: ArrowMesh) {
     if (mesh.touched) {
-      const currentIndex = this.amazonBookService.getPageIndexValue();
 
       if (mesh.direction === 'next') {
         this.amazonBookService.nextPage();
@@ -215,7 +215,10 @@ export class RenderAmazonBooksComponent implements OnInit {
       const searchField = this.amazonBookService.getSearchTitleValue();
 
       if (searchField.length > 0 || searchField) {
-        this.amazonBookService.searchByTitle().subscribe(value => this.transformFetchedData(value.dataDtos));
+        this.amazonBookService.searchByTitle().subscribe(value => {
+          this.transformFetchedData(value.dataDtos);
+          this.animate();
+        });
       } else {
         this.amazonBookService.getAll()
           .subscribe(value => value);
@@ -259,12 +262,8 @@ export class RenderAmazonBooksComponent implements OnInit {
 
   getBooks() {
     this.amazonBookService.getLiveData().subscribe(value => {
-      // this.meshOfBooks.children = [];
-      // this.meshOfBooks.add(this.highlightBox);
-      // this.bookList = value;
-      // this.initBookMeshs();
-      // this.animate();
       this.transformFetchedData(value.dataDtos);
+      this.animate();
     });
   }
 
@@ -273,7 +272,6 @@ export class RenderAmazonBooksComponent implements OnInit {
     this.meshOfBooks.add(this.highlightBox);
     this.bookList = value;
     this.initBookMeshs();
-    this.animate();
   }
 
   onMouseClick(event) {
