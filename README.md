@@ -1,5 +1,5 @@
 # Searchbookfrontend
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.3.20.
+The backend part of this project can be found [HERE](https://github.com/ciCciC/searchbooksbackend)
 
 ![](../master/demo.png)  |
